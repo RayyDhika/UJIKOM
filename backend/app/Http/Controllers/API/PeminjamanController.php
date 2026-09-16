@@ -1,0 +1,207 @@
+<?php
+
+namespace App\Http\Controllers\API;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Peminjaman\storePeminjamanRequest;
+use App\Http\Resources\PeminjamanResource;
+use App\Models\Alat;
+use App\Models\Peminjaman;
+use App\Models\DetailPinjam;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
+
+use Exception;
+
+class PeminjamanController extends Controller
+{
+    /**
+     * Display a listing of the resource.
+     */
+    public function index() : JsonResponse
+    {
+        $user = auth()->user();
+        $query = Peminjaman::with(['user', 'detailPinjam.alat', 'pengembalian']);
+        if ($user->role === 'peminjam') {
+            $query->where('user_id', $user->id);
+        }
+        $peminjaman =  $query->latest()->get();
+
+        return response()->json([
+            'message' => 'Daftar peminjaman berhasil diambil.',
+            'data' => PeminjamanResource::collection($peminjaman)
+        ]);
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(StorePeminjamanRequest $request) : JsonResponse
+    {
+        try {
+            $peminjaman = DB::transaction(function () use ($request) {
+                $user = auth()->user();
+                $peminjaman = Peminjaman::create([
+                    'user_id' => $user->id,
+                    'tgl_pinjam' => now()->toDateString(),
+                    'tgl_kembali_plan' => $request->tgl_kembali_plan,
+                    'status' => 'diajukan',
+                ]);
+
+                foreach ($request->items as $item) {
+                    // lockforupdate mengunci baris data di database sampai transaksi ini commit
+                    $alat = Alat::lockForUpdate()->findOrFail($item['alat_id']);
+                    if ($alat->stok < $item['jumlah']) {
+                        throw new Exception("Stok alat '{$alat->nama_alat}' tidak mencukupi. Sisa stok: {$alat->stok}");
+                    }
+                    DetailPinjam::create([
+                        'peminjaman_id' => $peminjaman->id,
+                        'alat_id' => $item['alat_id'],
+                        'jumlah' => $item['jumlah'],
+                    ]);
+                }
+
+                return $peminjaman->load(['user', 'detailPinjam.alat']);
+            });
+
+            return response()->json([
+                'message' => 'Peminjaman berhasil diajukan. Menunggu persetujuan petugas.',
+                'data' => new PeminjamanResource($peminjaman) // dioptimalkan menggnakan resource
+                    ], 201);
+        } catch (Exception $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(Peminjaman $peminjaman) : JsonResponse
+    {
+        $user = auth()->user();
+        if ($user->role === 'peminjam' && $peminjaman->user_id !== $user->id) {
+            return response()->json(['message' => 'Akses ditolak.'], 403);
+        }
+
+        return response()->json([
+            'message' => 'Detail peminjaman berhasil diambil.',
+            'data' => new PeminjamanResource($peminjaman->load(['user', 'detailPinjam.alat', 'pengembalian']))
+        ]);
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(StorePeminjamanRequest $request, Peminjaman $peminjaman) : JsonResponse
+    {
+        $user = auth()->user();
+
+        if ($user->role === 'peminjam' && $peminjaman->user_id !== $user->id) {
+            return response()->json(['message' => 'Akses ditolak.'], 403);
+        }
+
+        if ($peminjaman->status !== 'diajukan') {
+            return response()->json([
+                'message' => "Peminjaman tidak dapat diubah karena status saat ini: {$peminjaman->status}."
+            ], 400);
+        }
+
+        try {
+            DB::transaction(function () use ($request, $peminjaman) {
+                $peminjaman->update([
+                    'tgl_kembali_plan' => $request->tgl_kembali_plan,
+                ]);
+
+                $peminjaman->detailPinjam()->delete();
+
+                foreach ($request->items as $item) {
+                    $alat = Alat::lockForUpdate()->findOrFail($item['alat_id']);
+                    if ($alat->stok < $item['jumlah']) {
+                        throw new Exception("Stok alat '{$alat->nama_alat}' tidak mencukupi.");
+                    }
+
+                    DetailPinjam::create([
+                        'peminjaman_id' => $peminjaman->id,
+                        'alat_id' => $item['alat_id'],
+                        'jumlah' => $item['jumlah'],
+                    ]);
+                }
+            });
+
+            return response()->json([
+                'message' =>'Data permohonan peminjaman berhasil diperbarui.',
+                'data' => new PeminjamanResource($peminjaman->load(['user', 'detailPinjam.alat']))
+            ]);
+        } catch (Exception $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(Peminjaman $peminjaman) : JsonResponse
+    {
+        $user = auth()->user();
+        if ($user->role === 'peminjam' && $peminjaman->user_id !== $user->id) {
+            return response()->json(['message' => 'Akses ditolak.'], 403);
+        }
+        if ($peminjaman->status !== 'diajukan') {
+            return response()->json(['message' => 'Peminjaman tidak dapat dibatalkan.'], 400);
+        }
+
+        DB::transaction(function () use ($peminjaman) {
+            $peminjaman->detailPinjam()->delete();
+            $peminjaman->delete();
+        });
+
+        return response()->json([
+            'message' => 'Permohonan peminjaman berhasil dibatalkan dan dihapus.'
+        ]);
+    }
+
+    public function approve(Peminjaman $peminjaman) : JsonResponse
+    {
+        if ($peminjaman->status !== 'diajukan') {
+            return response()->json([
+                'message' => "Persetujuan gagal. Status saat ini: {$peminjaman->status},"
+            ], 400);
+        }
+
+        try {
+            DB::transaction(function () use ($peminjaman) {
+                $peminjaman->update(['status' => 'dipinjam']);
+
+                foreach ($peminjaman->detailPinjam as $detail) {
+                    $alat = Alat::lockForUpdate()->findOrFail($detail->alat_id);
+                    if ($alat->stok < $detail->jumlah) {
+                        throw new Exception("Persetujuan gagal. Stok alat '{$alat->nama_alat}' mendadak tidak mencukupi.");
+                    }
+
+                    $alat->decrement('stok', $detail->jumlah);
+                }
+            });
+
+            return response()->json([
+                'message' => 'Peminjaman disetujui. Stok alat telah otomatis dikurangi.',
+                'data' => new PeminjamanResource($peminjaman->load(['user', 'detailPinjam.alat']))
+            ]);
+        } catch (Exception $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function riwayat(): JsonResponse
+    {
+        $riwayat = Peminjaman::with(['detailPinjam.alat', 'pengembalian'])
+            ->where('user_id', auth()->id())
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'message' => 'Riwayat peminjaman anda.',
+            'data' => PeminjamanResource::collection($riwayat)
+        ]);
+    }
+}

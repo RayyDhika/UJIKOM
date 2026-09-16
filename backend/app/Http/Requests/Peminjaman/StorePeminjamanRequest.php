@@ -1,0 +1,51 @@
+<?php
+
+namespace App\Http\Requests\Peminjaman;
+
+use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+class StorePeminjamanRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
+    public function rules(): array
+    {
+        return [
+            'tgl_kembali_plan' => ['required', 'date', 'data_format:Y-m-d', 'after_or_equal:today'],
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.alat_id' => ['required', 'integer', Rule::exists('alat', 'id')],
+            'items.*.jumlah' => ['required', 'integer', 'min:1'],
+        ];
+    }
+    public function messages () : array
+    {
+        return [
+            'tgl_kembali_plan.required' => 'Tanggal rencana pengembalian wajib diisi.',
+            'tgl_kembali_plan.date_format' => 'Format tanggal harus Tahun-Bulan-Tanggal (YYYY-MM-DD).',
+            'tgl_kembali_plan.after_or_equal' => 'Tanggal rencana kembali tidak boleh dimasa lalu.',
+            'items.required' => 'Anda harus memilih minimal satu alat untuk dipinjam.',
+            'items.array' => 'Format data item yang dikirim harus berupa daftar/list.',
+            'items.min' => 'Anda harus memilih minimal satu alat untuk dipinjam.',
+        ];
+    }
+    public function attributes(): array
+    {
+        return [
+            'items.*.alat_id' => 'Alat',
+            'items.*.jumlah' => 'Jumlah barang',
+        ];
+    }
+}

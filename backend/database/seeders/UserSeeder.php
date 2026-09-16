@@ -30,7 +30,7 @@ class UserSeeder extends Seeder
             [
                 'name' => 'Rayy Dhikaa',
                 'email' => 'rayy@gmail.com',
-                'password' => Hash::make('richyrivano1'),
+                'password' => Hash::make('dhika123'),
                 'role' => 'peminjam',
                 'no_hp' => '085624745985',
                 'alamat' => 'Bandung, West Java',
@@ -38,7 +38,7 @@ class UserSeeder extends Seeder
             [
                  'name' => 'Mardhika Raisya',
                 'email' => 'mardhika@gmail.com',
-                'password' => Hash::make('zicko1111'),
+                'password' => Hash::make('mardhika123'),
                 'role' => 'peminjam',
                 'no_hp' => '085624745983',
                 'alamat' => 'Bandung, West Java',

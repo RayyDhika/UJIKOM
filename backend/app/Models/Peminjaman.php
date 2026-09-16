@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use App\Models\Pengembalian;
 
 class Peminjaman extends Model
 {
@@ -24,6 +26,11 @@ class Peminjaman extends Model
 
     public function detailPinjam(): HasMany
     {
-        return $this->hasMany(DetilPinjam::class);
+        return $this->hasMany(DetailPinjam::class);
+    }
+
+    public function pengembalian(): HasOne
+    {
+        return $this->hasOne(Pengembalian::class, 'peminjaman_id');
     }
 }
