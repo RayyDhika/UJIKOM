@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Cetak Laporan - Dashboard Petugas')
+@section('title', 'Cetak Laporan - Panel Admin')
 @section('header-title', 'Cetak Laporan Peminjaman Alat')
 
 @section('content')
@@ -18,7 +18,7 @@
             </div>
 
             @if($sudahTampil)
-                <a href="{{ route('petugas.laporan.cetak', request()->query()) }}"
+                <a href="{{ route('admin.laporan.cetak', request()->query()) }}"
                     target="_blank"
                     class="inline-flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition shadow-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -32,7 +32,7 @@
     </div>
 
     <div class="p-5">
-        <form action="{{ route('petugas.laporan.index') }}" method="GET"
+        <form action="{{ route('admin.laporan.index') }}" method="GET"
               class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
             <input type="hidden" name="tampilkan" value="1">
@@ -66,12 +66,12 @@
             {{-- Tombol --}}
             <div class="flex items-end gap-2">
                 <button type="submit"
-                    class="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 text-sm font-semibold rounded-lg transition shadow-sm">
+                    class="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 text-sm font-normal rounded-lg transition shadow-sm">
                     Tampilkan
                 </button>
 
-                <a href="{{ route('petugas.laporan.index') }}"
-                    class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 text-sm font-semibold rounded-lg transition">
+                <a href="{{ route('admin.laporan.index') }}"
+                    class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 text-sm font-normal rounded-lg transition">
                     Reset
                 </a>
             </div>

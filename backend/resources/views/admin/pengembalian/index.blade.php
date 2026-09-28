@@ -16,6 +16,57 @@
         </div>
     @endif
 
+    <div class="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200 mb-6">
+        <div class="p-5 border-b border-gray-200 bg-gray-50">
+            <h3 class="text-lg font-bold text-gray-800">Menunggu Persetujuan Pengembalian</h3>
+            <p class="text-xs text-gray-500 mt-1">Pengajuan pengembalian alat dari peminjam yang perlu diproses.</p>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-100 text-gray-600 text-sm uppercase tracking-wider">
+                        <th class="py-3 px-4 border-b">Peminjam</th>
+                        <th class="py-3 px-4 border-b">Diajukan Pada</th>
+                        <th class="py-3 px-4 border-b">Detail Alat</th>
+                        <th class="py-3 px-4 border-b text-center">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="text-gray-700 text-sm">
+                    @forelse($pendingPengembalian as $item)
+                        <tr class="hover:bg-gray-50 transition align-top">
+                            <td class="py-3 px-4 border-b font-medium text-gray-900">
+                                {{ $item->user->name ?? 'User Dihapus' }}
+                            </td>
+                            <td class="py-3 px-4 border-b whitespace-nowrap">
+                                {{ $item->pengembalian_diajukan_at->format('d M Y H:i') }}
+                            </td>
+                            <td class="py-3 px-4 border-b">
+                                <ul class="list-disc list-inside space-y-1 text-xs">
+                                    @foreach($item->detailPinjam as $detail)
+                                        <li>
+                                            <span class="font-semibold">{{ $detail->alat->nama_alat ?? 'Alat Dihapus' }}</span>
+                                            (Jumlah: {{ $detail->jumlah }})
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </td>
+                            <td class="py-3 px-4 border-b text-center">
+                                <a href="{{ route('admin.pengembalian.proses', $item->id) }}"
+                                   class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-xs font-semibold transition shadow-sm">
+                                    Proses
+                                </a>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="4" class="py-6 text-center text-gray-500">Tidak ada pengajuan pengembalian yang menunggu.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <div class="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
         <div class="p-5 border-b border-gray-200 bg-gray-50 flex flex-col md:flex-row justify-between items-center gap-4">
             <h3 class="text-lg font-bold text-gray-800">Daftar Pengembalian Alat</h3>

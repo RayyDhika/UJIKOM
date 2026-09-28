@@ -70,6 +70,22 @@
                         Kelola Pengembalian
                     </a>
 
+                    <a href="{{ route('admin.laporan.index') }}"
+                        class="block px-4 py-2 rounded-lg transition
+                        {{ request()->routeIs('admin.laporan.*')
+                            ? 'bg-gray-800 text-white font-medium shadow'
+                            : 'text-gray-400 hover:bg-gray-800 hover:text-white' }}">
+                        Cetak Laporan
+                    </a>
+
+                    <a href="{{ route('admin.logAktivitas.index') }}"
+                        class="block px-4 py-2 rounded-lg transition
+                        {{ request()->routeIs('admin.log-aktivitas.*')
+                            ? 'bg-gray-800 text-white font-medium shadow'
+                            : 'text-gray-400 hover:bg-gray-800 hover:text-white' }}">
+                        Log Aktivitas
+                    </a>
+
                 @endif
                 <!-- MENU KHUSUS PETUGAS -->
                 @if(auth()->user()->role === 'petugas')

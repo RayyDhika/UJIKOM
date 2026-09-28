@@ -14,6 +14,13 @@ Route::get('/', function () {
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'index'])->name('dashboard');
 
+    // Log Aktivitas (halaman terpisah, tidak lagi tampil di dashboard)
+    Route::get('/logAktivitas', [AdminController::class, 'logAktivitas'])->name('logAktivitas.index');
+
+    // Cetak Laporan
+    Route::get('/laporan/peminjaman', [AdminController::class, 'indexLaporan'])->name('laporan.index');
+    Route::get('/laporan/peminjaman/cetak', [AdminController::class, 'cetakLaporan'])->name('laporan.cetak');
+
     // CRUD Alat
     Route::get('/alat', [AdminController::class, 'indexAlat'])->name('alat.index');
     Route::post('/alat', [AdminController::class, 'storeAlat'])->name('alat.store');
@@ -53,6 +60,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/pengembalian', [AdminController::class, 'indexPengembalian'])->name('pengembalian.index');
     Route::get('/pengembalian/create', [AdminController::class, 'createPengembalian'])->name('pengembalian.create');
     Route::post('/pengembalian', [AdminController::class, 'storePengembalian'])->name('pengembalian.store'); 
+    // Proses persetujuan pengajuan pengembalian dari peminjam
+    Route::get('/pengembalian/proses/{peminjaman}', [AdminController::class, 'prosesPengembalianForm'])->name('pengembalian.proses');
+    Route::post('/pengembalian/proses/{peminjaman}/setujui', [AdminController::class, 'setujuiPengembalian'])->name('pengembalian.setujui');
+    Route::post('/pengembalian/proses/{peminjaman}/tolak', [AdminController::class, 'tolakPengembalian'])->name('pengembalian.tolak');
     Route::delete('/pengembalian/{id}', [AdminController::class, 'destroyPengembalian'])->name('pengembalian.destroy');
 
 });
@@ -68,6 +79,10 @@ Route::middleware(['auth', 'role:petugas,admin'])->prefix('petugas')->name('petu
     // Pengembalian & Denda
     Route::get('/pengembalian', [PetugasController::class, 'indexPengembalian'])
         ->name('pengembalian.index');
+    // Proses persetujuan pengajuan pengembalian dari peminjam
+    Route::get('/pengembalian/proses/{peminjaman}', [PetugasController::class, 'prosesPengembalianForm'])->name('pengembalian.proses');
+    Route::post('/pengembalian/proses/{peminjaman}/setujui', [PetugasController::class, 'setujuiPengembalian'])->name('pengembalian.setujui');
+    Route::post('/pengembalian/proses/{peminjaman}/tolak', [PetugasController::class, 'tolakPengembalian'])->name('pengembalian.tolak');
     // Cetak laporan
     Route::get('/laporan/peminjaman', [PetugasController::class, 'indexLaporan'])
     ->name('laporan.index');
@@ -84,6 +99,11 @@ Route::middleware(['auth', 'role:peminjam'])->prefix('peminjam')->name('peminjam
     Route::get('/katalog', [PeminjamController::class, 'katalogAlat'])->name('katalog');
     Route::post('/peminjaman/ajukan', [PeminjamController::class, 'ajukanPeminjaman'])->name('peminjaman.ajukan');
     Route::get('/riwayat', [PeminjamController::class, 'riwayatPeminjaman'])->name('riwayat');
+    Route::delete('/peminjaman/{id}', [PeminjamController::class, 'destroyPeminjaman'])->name('peminjaman.destroy');
+
+    // Pengembalian alat (diajukan peminjam, disetujui/ditolak admin/petugas)
+    Route::post('/pengembalian/{id}/ajukan', [PeminjamController::class, 'ajukanPengembalian'])->name('pengembalian.ajukan');
+    Route::delete('/pengembalian/{id}/batal', [PeminjamController::class, 'batalkanPengembalian'])->name('pengembalian.batal');
 });
 
 // Route Tamu (Belum Login)

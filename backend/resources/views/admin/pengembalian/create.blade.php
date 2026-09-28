@@ -16,24 +16,78 @@
         @csrf
        <!-- Pilihan Transaksi Peminjaman -->
         <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-semibold mb-2">Pilih Transaksi Peminjaman (Status: Dipinjam)</label>
-            <select name="peminjaman_id" id="peminjaman_id" onchange="showAlatDetails(this)" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="" data-alat="">-- Pilih Data Peminjaman --</option>
-                @foreach($peminjamans as $pjm)
-                    @php
-                        $listAlat = '';
-                        // PERBAIKAN: Menggunakan detailPinjam sesuai dengan Model kamu
-                        foreach($pjm->detailPinjam as $detail) {
-                            $nama_alat = $detail->alat->nama_alat ?? 'Alat Dihapus';
-                            $listAlat .= "- {$nama_alat} (Jumlah: {$detail->jumlah} pcs)<br>";
-                        }
-                    @endphp
-                    <option value="{{ $pjm->id }}" data-alat="{{ $listAlat }}" {{ old('peminjaman_id') == $pjm->id ? 'selected' : '' }}>
-                        {{ $pjm->user->name }} - Tgl Pinjam: {{ \Carbon\Carbon::parse($pjm->tgl_pinjam)->format('d M Y') }}
-                    </option>
-                @endforeach
-            </select>
-            @error('peminjaman_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+
+            <label class="block text-gray-700 text-sm font-semibold mb-2">
+                Pilih Transaksi Peminjaman (Status: Dipinjam)
+            </label>
+
+            <div class="relative" id="peminjaman-dropdown">
+
+                <!-- Input Search -->
+                <input
+                    type="text"
+                    id="peminjaman-search"
+                    placeholder="Cari nama peminjam atau tanggal pinjam..."
+                    autocomplete="off"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+
+                <!-- ID Peminjaman yang dikirim ke Controller -->
+                <input
+                    type="hidden"
+                    name="peminjaman_id"
+                    id="peminjaman_id"
+                    value="{{ old('peminjaman_id') }}"
+                    required>
+
+                <!-- Dropdown hasil pencarian -->
+                <div
+                    id="peminjaman-options"
+                    class="hidden absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+
+                    @foreach($peminjamans as $pjm)
+
+                        @php
+                            $listAlat = '';
+
+                            foreach($pjm->detailPinjam as $detail) {
+                                $nama_alat = $detail->alat->nama_alat ?? 'Alat Dihapus';
+
+                                $listAlat .= "- {$nama_alat} (Jumlah: {$detail->jumlah} pcs)<br>";
+                            }
+
+                            $namaPeminjam = $pjm->user->name ?? 'User Dihapus';
+
+                            $tanggalPinjam = \Carbon\Carbon::parse($pjm->tgl_pinjam)
+                                ->format('d M Y');
+                        @endphp
+
+                        <button
+                            type="button"
+                            class="peminjaman-option w-full text-left px-3 py-2 hover:bg-blue-50 transition"
+                            data-id="{{ $pjm->id }}"
+                            data-name="{{ $namaPeminjam }}"
+                            data-date="{{ $tanggalPinjam }}"
+                            data-alat="{{ $listAlat }}">
+
+                            <div class="font-medium text-gray-800">
+                                {{ $namaPeminjam }}
+                            </div>
+
+                            <div class="text-xs text-gray-500">
+                                Tgl Pinjam: {{ $tanggalPinjam }}
+                            </div>
+
+                        </button>
+
+                    @endforeach
+
+                </div>
+            </div>
+
+            @error('peminjaman_id')
+                <span class="text-red-500 text-xs">{{ $message }}</span>
+            @enderror
+
         </div>
 
         <!-- Info Box: Menampilkan Alat yang dipinjam secara otomatis -->
@@ -87,29 +141,188 @@
 
 <!-- Script untuk Menampilkan Daftar Alat secara Dinamis -->
 <script>
-    function showAlatDetails(selectElement) {
-        const container = document.getElementById('info-alat-container');
-        const daftarAlat = document.getElementById('daftar-alat');
-        
-        // Ambil data-alat dari option yang dipilih
-        const selectedOption = selectElement.options[selectElement.selectedIndex];
-        const alatData = selectedOption.getAttribute('data-alat');
+
+document.addEventListener('DOMContentLoaded', function () {
+
+    // =================================================
+    // SEARCH TRANSAKSI PEMINJAMAN
+    // =================================================
+
+    const peminjamanSearch =
+        document.getElementById('peminjaman-search');
+
+    const peminjamanOptions =
+        document.getElementById('peminjaman-options');
+
+    const peminjamanId =
+        document.getElementById('peminjaman_id');
+
+
+    // Buka dropdown ketika input diklik
+    peminjamanSearch.addEventListener('focus', function () {
+
+        peminjamanOptions.classList.remove('hidden');
+
+    });
+
+
+    // Search peminjaman
+    peminjamanSearch.addEventListener('input', function () {
+
+        const keyword =
+            this.value.toLowerCase().trim();
+
+        peminjamanOptions.classList.remove('hidden');
+
+        document.querySelectorAll('.peminjaman-option').forEach(option => {
+
+            const name =
+                option.dataset.name.toLowerCase();
+
+            const date =
+                option.dataset.date.toLowerCase();
+
+            if (
+                name.includes(keyword) ||
+                date.includes(keyword)
+            ) {
+
+                option.classList.remove('hidden');
+
+            } else {
+
+                option.classList.add('hidden');
+
+            }
+
+        });
+
+    });
+
+
+    // =================================================
+    // PILIH TRANSAKSI PEMINJAMAN
+    // =================================================
+
+    document.querySelectorAll('.peminjaman-option').forEach(option => {
+
+        option.addEventListener('click', function () {
+
+            const nama =
+                this.dataset.name;
+
+            const tanggal =
+                this.dataset.date;
+
+            const id =
+                this.dataset.id;
+
+            const alatData =
+                this.dataset.alat;
+
+
+            // Tampilkan data pada search bar
+            peminjamanSearch.value =
+                nama + ' - Tgl Pinjam: ' + tanggal;
+
+
+            // Simpan ID peminjaman
+            peminjamanId.value = id;
+
+
+            // Tutup dropdown
+            peminjamanOptions.classList.add('hidden');
+
+
+            // Tampilkan daftar alat
+            showAlatDetails(alatData);
+
+        });
+
+    });
+
+
+    // =================================================
+    // TAMPILKAN ALAT
+    // =================================================
+
+    function showAlatDetails(alatData) {
+
+        const container =
+            document.getElementById('info-alat-container');
+
+        const daftarAlat =
+            document.getElementById('daftar-alat');
+
 
         if (alatData) {
+
             daftarAlat.innerHTML = alatData;
+
             container.classList.remove('hidden');
+
         } else {
+
             container.classList.add('hidden');
+
             daftarAlat.innerHTML = '';
+
         }
+
     }
 
-    // Jalankan otomatis saat halaman diload (jika ada nilai old/error)
-    document.addEventListener('DOMContentLoaded', function() {
-        const selectElement = document.getElementById('peminjaman_id');
-        if(selectElement.value) {
-            showAlatDetails(selectElement);
+
+    // =================================================
+    // KLIK DI LUAR DROPDOWN
+    // =================================================
+
+    document.addEventListener('click', function (event) {
+
+        if (!event.target.closest('#peminjaman-dropdown')) {
+
+            peminjamanOptions.classList.add('hidden');
+
         }
+
     });
+
+
+    // =================================================
+    // OLD VALUE / VALIDATION ERROR
+    // =================================================
+
+    const oldId =
+        peminjamanId.value;
+
+    if (oldId) {
+
+        const selected =
+            document.querySelector(
+                '.peminjaman-option[data-id="' + oldId + '"]'
+            );
+
+        if (selected) {
+
+            const nama =
+                selected.dataset.name;
+
+            const tanggal =
+                selected.dataset.date;
+
+            const alatData =
+                selected.dataset.alat;
+
+
+            peminjamanSearch.value =
+                nama + ' - Tgl Pinjam: ' + tanggal;
+
+
+            showAlatDetails(alatData);
+
+        }
+
+    }
+
+});
 </script>
 @endsection

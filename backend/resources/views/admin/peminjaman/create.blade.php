@@ -17,12 +17,12 @@
     <form action="{{ route('admin.peminjaman.store') }}" method="POST">
         @csrf
 
-        {{-- PILIH PEMINJAM --}}
+        <!-- PILIH PEMINJAM -->
         <div class="mb-4">
             <label class="block text-gray-700 text-sm font-semibold mb-2">Pilih Peminjam (User)</label>
             <div class="relative" id="user-dropdown">
 
-                {{-- Input Search --}}
+                <!-- Input Search -->
                 <input type="text" id="user-search" placeholder="Cari nama atau email..." autocomplete="off"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 {{-- ID User yang dikirim ke Controller --}}
@@ -44,17 +44,16 @@
             </div>
         </div>
 
-        {{-- TANGGAL --}}
+        <!-- TANGGAL -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-
-            {{-- Tanggal Pinjam --}}
+            <!-- Tanggal Pinjam -->
             <div>
                 <label class="block text-gray-700 text-sm font-semibold mb-2">Tanggal Pinjam</label>
                 <input type="date" name="tgl_pinjam" value="{{ old('tgl_pinjam', date('Y-m-d')) }}"required 
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
 
-            {{-- Tanggal Kembali --}}
+            <!-- Tanggal Kembali -->
             <div>
                 <label class="block text-gray-700 text-sm font-semibold mb-2">Rencana Tanggal Kembali</label>
                 <input type="date" name="tgl_kembali_plan" value="{{ old('tgl_kembali_plan', date('Y-m-d', strtotime('+3 days'))) }}" required
@@ -62,42 +61,37 @@
             </div>
         </div>
 
-        
-        {{-- DAFTAR ALAT --}}
+        <!-- DAFTAR ALAT -->
         <div class="mb-6">
-
             <label class="block text-gray-700 text-sm font-semibold mb-2">
                 Daftar Alat yang Dipinjam
             </label>
 
             <div id="alat-container" class="space-y-3">
 
-                {{-- ROW ALAT PERTAMA --}}
+                <!-- ROW ALAT PERTAMA -->
                 <div class="alat-row flex items-center gap-3">
 
-                    {{-- Searchable Dropdown Alat --}}
+                    <!-- Searchable Dropdown Alat -->
                     <div class="relative flex-1 alat-dropdown">
 
-                        {{-- Search --}}
+                        <!-- Search -->
                         <input
                             type="text"
                             placeholder="Cari alat..."
                             autocomplete="off"
-                            class="alat-search w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
+                            class="alat-search w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
 
-                        {{-- ID Alat yang dikirim --}}
+                    <!-- ID Alat yang dikirim -->
                         <input
                             type="hidden"
                             name="alat_id[]"
                             class="alat-id"
-                            required
-                        >
+                            required>
 
-                        {{-- Dropdown --}}
+                        <!-- Dropdown -->
                         <div
-                            class="alat-options hidden absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
-                        >
+                            class="alat-options hidden absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
 
                             @foreach($alats as $alat)
 
@@ -106,8 +100,7 @@
                                     class="alat-option w-full text-left px-3 py-2 hover:bg-blue-50 transition"
                                     data-id="{{ $alat->id }}"
                                     data-name="{{ $alat->nama_alat }}"
-                                    data-stok="{{ $alat->stok }}"
-                                >
+                                    data-stok="{{ $alat->stok }}">
 
                                     <div class="font-medium text-gray-800">
                                         {{ $alat->nama_alat }}
@@ -116,17 +109,13 @@
                                     <div class="text-xs text-gray-500">
                                         Stok: {{ $alat->stok }}
                                     </div>
-
                                 </button>
 
                             @endforeach
-
                         </div>
-
                     </div>
 
-
-                    {{-- Jumlah --}}
+                    <!-- Jumlah -->
                     <input
                         type="number"
                         name="jumlah[]"
@@ -134,16 +123,13 @@
                         min="1"
                         placeholder="Jumlah"
                         required
-                        class="w-24 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
+                        class="w-24 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
 
-
-                    {{-- Tombol Hapus --}}
+                    <!-- Tombol Hapus -->
                     <button
                         type="button"
                         onclick="removeRow(this)"
-                        class="bg-red-500 hover:bg-red-600 text-white px-3 py-2 text-xs rounded-lg transition whitespace-nowrap"
-                    >
+                        class="bg-red-500 hover:bg-red-600 text-white px-3 py-2 text-xs rounded-lg transition whitespace-nowrap">
                         Hapus
                     </button>
 
@@ -163,27 +149,19 @@
 
         </div>
 
-
-        {{-- ============================= --}}
-        {{-- BUTTON --}}
-        {{-- ============================= --}}
+        <!-- BUTTON -->
         <div class="flex justify-end space-x-2">
-
-            {{-- Batal --}}
+            <!-- Batal -->
             <a
                 href="{{ route('admin.peminjaman.index') }}"
-                class="bg-gray-300 hover:bg-gray-400 text-gray-700 text-sm font-semibold px-4 py-2 rounded-lg transition"
-            >
+                class="bg-gray-300 hover:bg-gray-400 text-gray-700 text-sm font-semibold px-4 py-2 rounded-lg transition">
                 Batal
             </a>
-
-
-            {{-- Simpan --}}
+            <!-- Simpan -->
             <button
                 type="submit"
-                class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
-            >
-                Simpan Peminjaman
+                class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
+                    Simpan Peminjaman
             </button>
 
         </div>
@@ -192,24 +170,16 @@
 
 </div>
 
-
-{{-- ================================================= --}}
-{{-- JAVASCRIPT --}}
-{{-- ================================================= --}}
+<!-- JAVASCRIPT -->
 
 <script>
 
 document.addEventListener('DOMContentLoaded', function () {
 
-
-    // =================================================
     // SEARCH PEMINJAM
-    // =================================================
-
     const userSearch = document.getElementById('user-search');
     const userOptions = document.getElementById('user-options');
     const userId = document.getElementById('user_id');
-
 
     // Buka dropdown ketika input diklik
     userSearch.addEventListener('focus', function () {
@@ -272,20 +242,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     });
 
-
-
-    // =================================================
     // SEARCH ALAT
-    // =================================================
-
     function setupAlatDropdown(row) {
 
         const search = row.querySelector('.alat-search');
-
         const hiddenId = row.querySelector('.alat-id');
-
         const options = row.querySelector('.alat-options');
-
 
         // Buka dropdown
         search.addEventListener('focus', function () {
@@ -348,28 +310,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
     }
 
-
-
-    // =================================================
     // AKTIFKAN SEARCH ALAT PERTAMA
-    // =================================================
-
     const firstRow =
         document.querySelector('.alat-row');
 
 
     if (firstRow) {
-
         setupAlatDropdown(firstRow);
-
     }
 
-
-
-    // =================================================
     // TAMBAH ROW ALAT
-    // =================================================
-
     window.addRow = function () {
 
         const container =
@@ -413,12 +363,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     };
 
-
-
-    // =================================================
     // HAPUS ROW ALAT
-    // =================================================
-
     window.removeRow = function (button) {
 
         const rows =
@@ -441,12 +386,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     };
 
-
-
-    // =================================================
     // KLIK DI LUAR DROPDOWN
-    // =================================================
-
     document.addEventListener('click', function (event) {
 
 

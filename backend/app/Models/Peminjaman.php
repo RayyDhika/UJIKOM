@@ -17,7 +17,16 @@ class Peminjaman extends Model
         'tgl_pinjam',
         'tgl_kembali_plan',
         'status',
+        'pengembalian_diajukan_at',
+        'catatan_pengembalian',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'pengembalian_diajukan_at' => 'datetime',
+        ];
+    }
 
     public function user(): BelongsTo
     {
@@ -32,5 +41,14 @@ class Peminjaman extends Model
     public function pengembalian(): HasOne
     {
         return $this->hasOne(Pengembalian::class, 'peminjaman_id');
+    }
+
+    /**
+     * Peminjaman yang sedang dipinjam dan menunggu persetujuan pengembalian
+     * dari admin/petugas.
+     */
+    public function scopeMenungguPengembalian($query)
+    {
+        return $query->where('status', 'dipinjam')->whereNotNull('pengembalian_diajukan_at');
     }
 }

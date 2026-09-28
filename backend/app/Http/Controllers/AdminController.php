@@ -13,15 +13,64 @@ use App\Models\Pengembalian;
 use App\Models\DetailPinjam;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class AdminController extends Controller
 {
-    // Halaman dashboard admin: ringkasan + log aktivitas terbaru
+    // Halaman dashboard admin: ringkasan jumlah data di setiap menu
     public function index()
     {
-        $logs = LogAktivitas::with('user')->latest()->take(20)->get();
+        $stats = [
+            'user' => [
+                'total' => User::count(),
+                'admin' => User::where('role', 'admin')->count(),
+                'petugas' => User::where('role', 'petugas')->count(),
+                'peminjam' => User::where('role', 'peminjam')->count(),
+            ],
+            'kategori' => [
+                'total' => Kategori::count(),
+            ],
+            'alat' => [
+                'total' => Alat::count(),
+                'total_stok' => (int) Alat::sum('stok'),
+            ],
+            'peminjaman' => [
+                'total' => Peminjaman::count(),
+                'diajukan' => Peminjaman::where('status', 'diajukan')->count(),
+                'dipinjam' => Peminjaman::where('status', 'dipinjam')->count(),
+                'dikembalikan' => Peminjaman::where('status', 'dikembalikan')->count(),
+                'telat' => Peminjaman::where('status', 'telat')->count(),
+            ],
+            'pengembalian' => [
+                'total' => Pengembalian::count(),
+                'menunggu' => Peminjaman::menungguPengembalian()->count(),
+            ],
+            'log_aktivitas' => [
+                'total' => LogAktivitas::count(),
+            ],
+        ];
 
-        return view('admin.dashboard', compact('logs'));
+        return view('admin.dashboard', compact('stats'));
+    }
+
+    // Halaman khusus daftar log aktivitas (dipindahkan dari dashboard)
+    public function logAktivitas(Request $request)
+    {
+        $search = $request->input('search');
+
+        $logs = LogAktivitas::with('user')
+            ->when($search, function ($query, $search) {
+                return $query->where('aktivitas', 'like', "%{$search}%")
+                    ->orWhereHas('user', function ($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%");
+                    });
+            })
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('admin.logAktivitas.index', compact('logs', 'search'));
     }
 
     // FITUR KELOLA USER
@@ -509,7 +558,18 @@ class AdminController extends Controller
 public function indexPengembalian(Request $request)
     {
         $search = $request->input('search');
-        
+
+        // Daftar pengajuan pengembalian dari peminjam yang menunggu diproses
+        $pendingPengembalian = Peminjaman::with(['user', 'detailPinjam.alat'])
+            ->menungguPengembalian()
+            ->when($search, function ($query, $search) {
+                return $query->whereHas('user', function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%");
+                });
+            })
+            ->oldest('pengembalian_diajukan_at')
+            ->get();
+
         $pengembalians = \App\Models\Pengembalian::with(['peminjaman.user', 'petugas'])
             ->when($search, function ($query, $search) {
                 // Pencarian berdasarkan nama peminjam, nama petugas, atau kondisi
@@ -525,7 +585,76 @@ public function indexPengembalian(Request $request)
             ->paginate(10)
             ->withQueryString();
 
-        return view('admin.pengembalian.index', compact('pengembalians', 'search'));
+        return view('admin.pengembalian.index', compact('pendingPengembalian', 'pengembalians', 'search'));
+    }
+
+    // Menampilkan form proses (setujui/tolak) pengajuan pengembalian dari peminjam
+    public function prosesPengembalianForm($peminjamanId)
+    {
+        $peminjaman = Peminjaman::with(['user', 'detailPinjam.alat'])
+            ->menungguPengembalian()
+            ->findOrFail($peminjamanId);
+
+        return view('admin.pengembalian.proses', compact('peminjaman'));
+    }
+
+    // Menyetujui pengajuan pengembalian: catat data pengembalian & pulihkan stok alat
+    public function setujuiPengembalian(Request $request, $peminjamanId)
+    {
+        $request->validate([
+            'kondisi_kembali' => 'required|in:baik,rusak ringan,rusak sedang,rusak berat',
+            'denda' => 'nullable|integer|min:0',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $peminjaman = Peminjaman::with('detailPinjam')->menungguPengembalian()->findOrFail($peminjamanId);
+
+            Pengembalian::create([
+                'peminjaman_id' => $peminjaman->id,
+                'tgl_kembali' => now(),
+                'kondisi_kembali' => $request->kondisi_kembali,
+                'denda' => $request->denda ?? 0,
+                'petugas_id' => auth()->id(),
+            ]);
+
+            $peminjaman->update([
+                'status' => 'dikembalikan',
+                'pengembalian_diajukan_at' => null,
+                'catatan_pengembalian' => null,
+            ]);
+
+            foreach ($peminjaman->detailPinjam as $detail) {
+                $alat = Alat::findOrFail($detail->alat_id);
+                $alat->increment('stok', $detail->jumlah);
+            }
+
+            DB::commit();
+            return redirect()->route('admin.pengembalian.index')
+                ->with('success', 'Pengembalian disetujui dan stok alat berhasil dipulihkan.');
+        } catch (\Exception $e) {
+            DB::rollback();
+            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
+    // Menolak pengajuan pengembalian dari peminjam
+    public function tolakPengembalian(Request $request, $peminjamanId)
+    {
+        $request->validate([
+            'catatan_pengembalian' => 'nullable|string|max:255',
+        ]);
+
+        $peminjaman = Peminjaman::menungguPengembalian()->findOrFail($peminjamanId);
+
+        $peminjaman->update([
+            'pengembalian_diajukan_at' => null,
+            'catatan_pengembalian' => $request->catatan_pengembalian
+                ?: 'Pengajuan pengembalian ditolak oleh admin.',
+        ]);
+
+        return redirect()->route('admin.pengembalian.index')
+            ->with('success', 'Pengajuan pengembalian berhasil ditolak.');
     }
 
     // Menampilkan form tambah pengembalian
@@ -592,5 +721,110 @@ public function indexPengembalian(Request $request)
         $pengembalian->delete();
 
         return redirect()->route('admin.pengembalian.index')->with('success', 'Data pengembalian berhasil dihapus.');
+    }
+
+// ==========================================
+// CETAK LAPORAN
+// ==========================================
+
+    // Halaman cetak laporan: tabel hanya tampil setelah user klik "Tampilkan"
+    public function indexLaporan(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'start_date' => ['nullable', 'date', 'date_format:Y-m-d'],
+            'end_date' => [
+                'nullable',
+                'date',
+                'date_format:Y-m-d',
+                'after_or_equal:start_date'
+            ],
+            'status' => [
+                'nullable',
+                'string',
+                'in:diajukan,dipinjam,dikembalikan,telat'
+            ],
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->route('admin.laporan.index')->withErrors($validator)->withInput();
+        }
+
+        $sudahTampil = $request->boolean('tampilkan');
+        $laporan = collect();
+
+        if ($sudahTampil) {
+            $query = Peminjaman::with(['user', 'detailPinjam.alat', 'pengembalian.petugas']);
+
+            $query->when($request->filled('start_date'), function ($q) use ($request) {
+                $q->whereDate('tgl_pinjam', '>=', $request->start_date);
+            });
+
+            $query->when($request->filled('end_date'), function ($q) use ($request) {
+                $q->whereDate('tgl_pinjam', '<=', $request->end_date);
+            });
+
+            $query->when($request->filled('status'), function ($q) use ($request) {
+                $q->where('status', $request->status);
+            });
+
+            $laporan = $query->latest('tgl_pinjam')->paginate(15)->withQueryString();
+        }
+
+        return view('admin.laporan.index', [
+            'laporan' => $laporan,
+            'sudahTampil' => $sudahTampil,
+            'start_date' => $request->start_date,
+            'end_date' => $request->end_date,
+            'status' => $request->status,
+        ]);
+    }
+
+    public function cetakLaporan(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'start_date' => ['nullable', 'date', 'date_format:Y-m-d'],
+            'end_date' => [
+                'nullable',
+                'date',
+                'date_format:Y-m-d',
+                'after_or_equal:start_date'
+            ],
+            'status' => [
+                'nullable',
+                'string',
+                'in:diajukan,dipinjam,dikembalikan,telat'
+            ],
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->route('admin.laporan.index')->withErrors($validator)->withInput();
+        }
+
+        $query = Peminjaman::with(['user', 'detailPinjam.alat', 'pengembalian.petugas']);
+
+        $query->when($request->filled('start_date'), function ($q) use ($request) {
+            $q->whereDate('tgl_pinjam', '>=', $request->start_date);
+        });
+
+        $query->when($request->filled('end_date'), function ($q) use ($request) {
+            $q->whereDate('tgl_pinjam', '<=', $request->end_date);
+        });
+
+        $query->when($request->filled('status'), function ($q) use ($request) {
+            $q->where('status', $request->status);
+        });
+
+        $laporan = $query->latest('tgl_pinjam')->get();
+
+        $pdf = Pdf::loadView('laporan.cetak', [
+            'laporan' => $laporan,
+            'start_date' => $request->start_date,
+            'end_date' => $request->end_date,
+            'status' => $request->status,
+        ]);
+
+        $pdf->setPaper('A4', 'landscape');
+
+        return $pdf->stream('laporan-peminjaman.pdf');
     }
 }
