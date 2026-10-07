@@ -217,15 +217,26 @@ class AdminController extends Controller
 
     // Menghapus user
     public function destroyUser($id)
-    {
-        $user = User::findOrFail($id);
-        $user->delete();
+{
+    $user = User::findOrFail($id);
 
-        return redirect()->route('admin.user.index')->with('success', 'User berhasil dihapus.');
+    // Cek apakah user memiliki peminjaman dengan status 'dipinjam' atau 'menunggu_persetujuan'
+    $hasActivePeminjaman = $user->peminjaman()
+        ->whereIn('status', ['dipinjam', 'menunggu_persetujuan'])
+        ->exists();
+
+    if ($hasActivePeminjaman) {
+        return redirect()->route('admin.user.index')
+            ->with('error', 'User tidak bisa dihapus karena masih memiliki peminjaman yang berstatus dipinjam atau menunggu persetujuan.');
     }
 
+    $user->delete();
+
+    return redirect()->route('admin.user.index')->with('success', 'User berhasil dihapus.');
+}
+
     // FITUR KELOLA KATEGORI
-    
+
     public function indexKategori(Request $request)
     {
         $search = $request->input('search');
@@ -252,7 +263,7 @@ class AdminController extends Controller
     {
         $request->validate([
             // Perbaikan: Mengganti backslash (\) menjadi pipe (|)
-            'nama_kategori' => 'required|string|max:255|unique:kategoris,nama_kategori',
+            'nama_kategori' => 'required|string|max:255|unique:kategori,nama_kategori',
         ]);
 
         Kategori::create([
@@ -276,7 +287,7 @@ class AdminController extends Controller
         $kategori = Kategori::findOrFail($id);
         
         $request->validate([
-            'nama_kategori' => 'required|string|max:255|unique:kategoris,nama_kategori,'. $id,
+            'nama_kategori' => 'required|string|max:255|unique:kategori,nama_kategori,'. $id,
         ]);
 
         $kategori->update([
@@ -292,7 +303,7 @@ class AdminController extends Controller
         $kategori = Kategori::findOrFail($id);
 
         //Cek apakah kategori masih dipakai oleh alat
-        if ($kategori->alats()->count() > 0) {
+        if ($kategori->alat()->count() > 0) {
             return redirect()->route('admin.kategori.index')
             ->with('error', 'Kategori tidak dapat dihapus karena masih digunakan oleh data alat.');
         }
@@ -404,6 +415,12 @@ class AdminController extends Controller
     {
         $alat = Alat::findOrFail($id);
 
+        //Cek apakah alat masih dipakai oleh alat
+        if ($alat->detailPinjam()->count() > 0) {
+            return redirect()->route('admin.alat.index')
+            ->with('error', 'Alat tidak dapat dihapus karena masih ada data peminjaman.');
+        }
+
         // Hapus file gambar fisik jika ada
         if ($alat->gambar && file_exists(public_path($alat->gambar))) {
             unlink(public_path($alat->gambar));
@@ -453,6 +470,8 @@ class AdminController extends Controller
             'alat_id.*' => 'exists:alat,id',
             'jumlah' => 'required|array',
             'jumlah.*' => 'integer|min:1',
+        ], [
+            'tgl_kembali_plan.after_or_equal' => 'Tanggal rencana kembali tidak boleh lebih awal dari tanggal pinjam.',
         ]);
 
         DB::beginTransaction();
@@ -551,9 +570,7 @@ class AdminController extends Controller
         return redirect()->route('admin.peminjaman.index')->with('success', 'Data peminjaman berhasil dihapus.');
     }
 
-// ==========================================
 // CRUD PENGEMBALIAN
-// ==========================================
 
 public function indexPengembalian(Request $request)
     {
@@ -723,9 +740,7 @@ public function indexPengembalian(Request $request)
         return redirect()->route('admin.pengembalian.index')->with('success', 'Data pengembalian berhasil dihapus.');
     }
 
-// ==========================================
 // CETAK LAPORAN
-// ==========================================
 
     // Halaman cetak laporan: tabel hanya tampil setelah user klik "Tampilkan"
     public function indexLaporan(Request $request)

@@ -92,7 +92,7 @@
 
         <!-- Info Box: Menampilkan Alat yang dipinjam secara otomatis -->
         <div id="info-alat-container" class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg hidden">
-            <p class="text-sm font-semibold text-blue-800 mb-2">📋 Alat yang harus dikembalikan:</p>
+            <p class="text-sm font-semibold text-blue-800 mb-2">Alat yang harus dikembalikan:</p>
             <div id="daftar-alat" class="text-sm text-blue-700 font-medium ml-2"></div>
         </div>
 
@@ -199,11 +199,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     });
 
-
-    // =================================================
     // PILIH TRANSAKSI PEMINJAMAN
-    // =================================================
-
     document.querySelectorAll('.peminjaman-option').forEach(option => {
 
         option.addEventListener('click', function () {
@@ -241,11 +237,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     });
 
-
-    // =================================================
     // TAMPILKAN ALAT
-    // =================================================
-
     function showAlatDetails(alatData) {
 
         const container =

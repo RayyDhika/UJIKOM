@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\DetailPinjam;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Alat extends Model
@@ -21,5 +23,10 @@ class Alat extends Model
     public function kategori(): BelongsTo
     {
         return $this->belongsTo(Kategori::class);
+    }
+
+    public function detailPinjam(): HasMany
+    {
+        return $this->hasMany(DetailPinjam::class, 'alat_id');
     }
 }
