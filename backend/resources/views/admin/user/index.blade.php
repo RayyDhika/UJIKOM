@@ -10,6 +10,7 @@
             {{ session('success') }}
         </div>
     @endif
+
     @if(session('error'))
         <div class="mb-4 bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg shadow-sm text-sm">
             {{ session('error') }}
@@ -73,7 +74,12 @@
                                 @endif
                             </td>
 
-                            <td class="py-3 px-4 border-b font-medium text-gray-900">{{ $user->name }}</td>
+                            <td class="py-3 px-4 border-b font-medium text-gray-900">
+                                {{ $user->name }}
+                                @if($user->id === auth()->id())
+                                    <span class="ml-1 text-xs font-semibold text-blue-600">(Anda)</span>
+                                @endif
+                            </td>
                             <td class="py-3 px-4 border-b">{{ $user->email }}</td>
                             <td class="py-3 px-4 border-b">
                                 <span class="px-2.5 py-1 text-xs font-semibold rounded-full
@@ -92,14 +98,22 @@
                                         Edit
                                     </a>
 
-                                    <!-- Tombol Hapus -->
-                                    <form action="{{ route('admin.user.destroy', $user->id) }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus user ini?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded text-xs font-semibold transition">
+                                    <!-- Tombol Hapus: tidak tersedia untuk akun yang sedang login -->
+                                    @if($user->id === auth()->id())
+                                        <button type="button" disabled
+                                                title="Anda tidak dapat menghapus akun Anda sendiri"
+                                                class="bg-gray-300 text-gray-500 px-3 py-1.5 rounded text-xs font-semibold cursor-not-allowed">
                                             Hapus
                                         </button>
-                                    </form>
+                                    @else
+                                        <form action="{{ route('admin.user.destroy', $user->id) }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus user ini?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded text-xs font-semibold transition">
+                                                Hapus
+                                            </button>
+                                        </form>
+                                    @endif
                                 </div>
                             </td>
                         </tr>

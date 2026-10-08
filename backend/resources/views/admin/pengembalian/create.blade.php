@@ -67,7 +67,9 @@
                             data-id="{{ $pjm->id }}"
                             data-name="{{ $namaPeminjam }}"
                             data-date="{{ $tanggalPinjam }}"
-                            data-alat="{{ $listAlat }}">
+                            data-alat="{{ $listAlat }}"
+                            data-plan="{{ \Carbon\Carbon::parse($pjm->tgl_kembali_plan)->toDateString() }}"
+                            data-plan-label="{{ \Carbon\Carbon::parse($pjm->tgl_kembali_plan)->format('d M Y') }}">
 
                             <div class="font-medium text-gray-800">
                                 {{ $namaPeminjam }}
@@ -122,12 +124,29 @@
             @error('kondisi_kembali') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
         </div>
 
-        <!-- Denda -->
-        <div class="mb-6">
-            <label class="block text-gray-700 text-sm font-semibold mb-2">Denda Keterlambatan / Kerusakan (Rp) <span class="text-xs text-gray-400 font-normal">(Isi 0 jika tidak ada)</span></label>
-            <input type="number" name="denda" value="{{ old('denda', 0) }}" min="0" required
+        <!-- Denda Telat (otomatis) -->
+        <div class="mb-4">
+            <label class="block text-gray-700 text-sm font-semibold mb-2">
+                Denda Keterlambatan (Rp)
+                <span class="text-xs text-gray-400 font-normal">(Otomatis: Rp 2.000 per hari)</span>
+            </label>
+            <input type="text" id="denda_telat_tampil" value="0" readonly
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed">
+            <p id="info-telat" class="text-xs mt-1 text-gray-400">Pilih transaksi peminjaman terlebih dahulu.</p>
+        </div>
+
+        <!-- Denda Rusak (manual) -->
+        <div class="mb-4">
+            <label class="block text-gray-700 text-sm font-semibold mb-2">Denda Kerusakan (Rp) <span class="text-xs text-gray-400 font-normal">(Isi manual, 0 jika tidak ada)</span></label>
+            <input type="number" name="denda_rusak" id="denda_rusak" value="{{ old('denda_rusak', 0) }}" min="0" required
                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-            @error('denda') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+            @error('denda_rusak') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+        </div>
+
+        <!-- Total -->
+        <div class="mb-6 p-3 bg-gray-50 border border-gray-200 rounded-lg flex justify-between text-sm">
+            <span class="font-semibold text-gray-700">Total Denda</span>
+            <span class="font-bold text-red-600" id="denda_total">Rp 0</span>
         </div>
 
         <div class="flex justify-end space-x-2">
@@ -232,10 +251,44 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Tampilkan daftar alat
             showAlatDetails(alatData);
+            updateDenda(this.dataset.plan, this.dataset.planLabel);
 
         });
 
     });
+
+    // DENDA OTOMATIS
+    const TARIF_TELAT = 2000;
+    const dendaTelatEl = document.getElementById('denda_telat_tampil');
+    const infoTelatEl = document.getElementById('info-telat');
+    const dendaRusakEl = document.getElementById('denda_rusak');
+    const dendaTotalEl = document.getElementById('denda_total');
+    let dendaTelat = 0;
+
+    function formatRp(n) { return 'Rp ' + n.toLocaleString('id-ID'); }
+
+    function renderTotal() {
+        dendaTotalEl.textContent = formatRp(dendaTelat + (parseInt(dendaRusakEl.value, 10) || 0));
+    }
+
+    function updateDenda(plan, planLabel) {
+        // Bandingkan tanggal (tanpa jam) hari ini dengan rencana kembali
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const [y, m, d] = plan.split('-').map(Number);
+        const rencana = new Date(y, m - 1, d);
+        const hari = Math.max(0, Math.round((today - rencana) / 86400000));
+
+        dendaTelat = hari * TARIF_TELAT;
+        dendaTelatEl.value = dendaTelat.toLocaleString('id-ID');
+        infoTelatEl.textContent = hari > 0
+            ? 'Terlambat ' + hari + ' hari dari rencana kembali (' + planLabel + ').'
+            : 'Tidak terlambat.';
+        infoTelatEl.className = 'text-xs mt-1 ' + (hari > 0 ? 'text-red-600' : 'text-gray-400');
+        renderTotal();
+    }
+
+    dendaRusakEl.addEventListener('input', renderTotal);
 
     // TAMPILKAN ALAT
     function showAlatDetails(alatData) {
@@ -310,6 +363,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
             showAlatDetails(alatData);
+            updateDenda(selected.dataset.plan, selected.dataset.planLabel);
 
         }
 

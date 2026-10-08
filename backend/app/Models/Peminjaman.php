@@ -43,6 +43,29 @@ class Peminjaman extends Model
         return $this->hasOne(Pengembalian::class, 'peminjaman_id');
     }
 
+    // Tarif denda keterlambatan per hari (Rp)
+    public const DENDA_TELAT_PER_HARI = 2000;
+
+    /**
+     * Jumlah hari keterlambatan dibanding rencana kembali (0 jika tidak telat).
+     * Hari 1 telat = 1, hari ke-2 = 2, dst.
+     */
+    public function hitungHariTelat($tglKembali = null): int
+    {
+        $rencana = \Carbon\Carbon::parse($this->tgl_kembali_plan)->startOfDay();
+        $kembali = ($tglKembali ? \Carbon\Carbon::parse($tglKembali) : now())->startOfDay();
+
+        return $kembali->greaterThan($rencana) ? (int) $rencana->diffInDays($kembali) : 0;
+    }
+
+    /**
+     * Denda keterlambatan otomatis: Rp 2.000 x jumlah hari telat.
+     */
+    public function hitungDendaTelat($tglKembali = null): int
+    {
+        return $this->hitungHariTelat($tglKembali) * self::DENDA_TELAT_PER_HARI;
+    }
+
     /**
      * Peminjaman yang sedang dipinjam dan menunggu persetujuan pengembalian
      * dari admin/petugas.

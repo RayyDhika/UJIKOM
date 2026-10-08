@@ -13,6 +13,9 @@ class Pengembalian extends Model
         'peminjaman_id',
         'tgl_kembali',
         'kondisi_kembali',
+        'hari_telat',
+        'denda_telat',
+        'denda_rusak',
         'denda',
         'petugas_id'
     ];
@@ -22,6 +25,9 @@ class Pengembalian extends Model
         return [
             'tgl_kembali' => 'date:Y-m-d',
             'denda' => 'integer',
+            'hari_telat' => 'integer',
+            'denda_telat' => 'integer',
+            'denda_rusak' => 'integer',
         ];
     }
 

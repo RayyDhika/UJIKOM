@@ -9,12 +9,14 @@
             {{ session('success') }}
         </div>
     @endif
+
     @if(session('error'))
         <div class="mb-4 bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg shadow-sm text-sm">
             {{ session('error') }}
         </div>
     @endif
 
+    <!-- Pengajuan pengembalian dari peminjam yang menunggu diproses -->
     <div class="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200 mb-6">
         <div class="p-5 border-b border-gray-200 bg-gray-50">
             <h3 class="text-lg font-bold text-gray-800">Menunggu Persetujuan Pengembalian</h3>
@@ -51,7 +53,7 @@
                             </td>
                             <td class="py-3 px-4 border-b text-center">
                                 <a href="{{ route('petugas.pengembalian.proses', $item->id) }}"
-                                   class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-xs font-semibold transition shadow-sm">
+                                   class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded text-xs font-semibold transition shadow-sm">
                                     Proses
                                 </a>
                             </td>
@@ -131,6 +133,16 @@
                             </td>
                             <td class="py-3 px-4 border-b text-red-600 font-semibold">
                                 Rp {{ number_format($pengembalian->denda, 0, ',', '.') }}
+                                @if($pengembalian->denda_telat > 0 || $pengembalian->denda_rusak > 0)
+                                    <div class="mt-1 text-xs font-normal text-gray-500 space-y-0.5">
+                                        @if($pengembalian->denda_telat > 0)
+                                            <div>Telat {{ $pengembalian->hari_telat }} hari: Rp {{ number_format($pengembalian->denda_telat, 0, ',', '.') }}</div>
+                                        @endif
+                                        @if($pengembalian->denda_rusak > 0)
+                                            <div>Rusak: Rp {{ number_format($pengembalian->denda_rusak, 0, ',', '.') }}</div>
+                                        @endif
+                                    </div>
+                                @endif
                             </td>
                             <td class="py-3 px-4 border-b text-gray-600 text-xs font-medium">
                                 {{ $pengembalian->petugas->name ?? 'Sistem' }}

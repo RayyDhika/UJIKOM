@@ -43,11 +43,38 @@
             <p class="text-xs text-gray-400 mt-1">Hanya diperlukan jika pengajuan disetujui.</p>
         </div>
 
-        <!-- Denda -->
+        <!-- Denda Telat (otomatis) -->
+        @php
+            $hariTelat = $peminjaman->hitungHariTelat();
+            $dendaTelat = $peminjaman->hitungDendaTelat();
+        @endphp
         <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-semibold mb-2">Denda Keterlambatan / Kerusakan (Rp) <span class="text-xs text-gray-400 font-normal">(Isi 0 jika tidak ada)</span></label>
-            <input type="number" name="denda" value="{{ old('denda', 0) }}" min="0"
+            <label class="block text-gray-700 text-sm font-semibold mb-2">
+                Denda Keterlambatan (Rp)
+                <span class="text-xs text-gray-400 font-normal">(Otomatis: Rp 2.000 per hari)</span>
+            </label>
+            <input type="text" id="denda_telat_tampil" value="{{ number_format($dendaTelat, 0, ',', '.') }}" readonly
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed">
+            <p class="text-xs mt-1 {{ $hariTelat > 0 ? 'text-red-600' : 'text-gray-400' }}">
+                @if($hariTelat > 0)
+                    Terlambat {{ $hariTelat }} hari dari rencana kembali ({{ \Carbon\Carbon::parse($peminjaman->tgl_kembali_plan)->format('d M Y') }}).
+                @else
+                    Tidak terlambat.
+                @endif
+            </p>
+        </div>
+
+        <!-- Denda Rusak (manual) -->
+        <div class="mb-4">
+            <label class="block text-gray-700 text-sm font-semibold mb-2">Denda Kerusakan (Rp) <span class="text-xs text-gray-400 font-normal">(Isi manual, 0 jika tidak ada)</span></label>
+            <input type="number" name="denda_rusak" id="denda_rusak" value="{{ old('denda_rusak', 0) }}" min="0"
                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+
+        <!-- Total -->
+        <div class="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-lg flex justify-between text-sm">
+            <span class="font-semibold text-gray-700">Total Denda</span>
+            <span class="font-bold text-red-600" id="denda_total">Rp 0</span>
         </div>
 
         <!-- Catatan penolakan -->
@@ -83,5 +110,18 @@
     // Form dikirim via formaction ke route setujui/tolak yang berbeda,
     // keduanya method POST sehingga cukup satu <form> dengan dua tombol submit.
     document.getElementById('form-proses-pengembalian').setAttribute('method', 'POST');
+
+    // Total denda = denda telat (otomatis) + denda rusak (manual)
+    (function () {
+        const dendaTelat = {{ $dendaTelat }};
+        const rusak = document.getElementById('denda_rusak');
+        const total = document.getElementById('denda_total');
+        function hitung() {
+            const jumlah = dendaTelat + (parseInt(rusak.value, 10) || 0);
+            total.textContent = 'Rp ' + jumlah.toLocaleString('id-ID');
+        }
+        rusak.addEventListener('input', hitung);
+        hitung();
+    })();
 </script>
 @endsection

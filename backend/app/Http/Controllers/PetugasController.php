@@ -34,19 +34,25 @@ class PetugasController extends Controller
         DB::beginTransaction();
         try {
             $peminjaman = Peminjaman::with('detailPinjam')->findOrFail($id);
-            $peminjaman->update(['status' => 'dipinjam']);
 
-            // Kurangi stok alat secara otomatis
-            foreach ($peminjaman->detailPinjam as $detail) {
-                $alat = Alat::findOrFail($detail->alat_id);
-                $alat->stok -= $detail->jumlah;
+            foreach ($peminjaman->detailPinjam as$detail) {
+                $alat = Alat::where('id',$detail->alat_id)->lockForUpdate()->firstOrFail();
+
+                if ($alat->stok <= 0) {
+                    throw new \Exception("Stok alat {$alat->nama_alat} tidak mencukupi untuk dipinjam."); // Akan ditangkap oleh catch di bawah
+                }
+
+                $alat->stok -=$detail->jumlah;
                 $alat->save();
             }
 
+            $peminjaman->update(['status' => 'dipinjam']);
+
             DB::commit();
-            return redirect()->back()->with('success', 'Peminjaman disetujui dan stok alat dikurangi.');
+            return redirect()->back()->with('success', 'Peminjaman berhasil disetujui dan stok alat dikurangi.');
+
         } catch (\Exception $e) {
-            DB::rollback();
+            DB::rollBack(); 
             return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
@@ -229,18 +235,26 @@ public function indexPengembalian(Request $request)
 public function cetakLaporan(Request $request)
 {
     $validator = Validator::make($request->all(), [
-        'start_date' => ['nullable', 'date', 'date_format:Y-m-d'],
+        'start_date' => [
+            'nullable',
+            'date',
+            'date_format:Y-m-d',
+        ],
+
         'end_date' => [
             'nullable',
             'date',
             'date_format:Y-m-d',
-            'after_or_equal:start_date'
+            'after_or_equal:start_date',
         ],
+
         'status' => [
             'nullable',
             'string',
-            'in:diajukan,dipinjam,dikembalikan,telat'
+            'in:diajukan,dipinjam,dikembalikan,telat',
         ],
+    ], [
+        'end_date.after_or_equal' => 'Tanggal akhir tidak boleh lebih awal dari tanggal mulai.',
     ]);
 
     if ($validator->fails()) {

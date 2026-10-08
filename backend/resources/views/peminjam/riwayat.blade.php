@@ -78,6 +78,12 @@
                                             <div class="small text-muted mt-1">
                                                 Kondisi: {{ ucfirst($item->pengembalian->kondisi_kembali) }}<br>
                                                 Denda: Rp {{ number_format($item->pengembalian->denda, 0, ',', '.') }}
+                                                @if($item->pengembalian->denda_telat > 0)
+                                                    <br>- Telat {{ $item->pengembalian->hari_telat }} hari: Rp {{ number_format($item->pengembalian->denda_telat, 0, ',', '.') }}
+                                                @endif
+                                                @if($item->pengembalian->denda_rusak > 0)
+                                                    <br>- Rusak: Rp {{ number_format($item->pengembalian->denda_rusak, 0, ',', '.') }}
+                                                @endif
                                             </div>
                                         @endif
 

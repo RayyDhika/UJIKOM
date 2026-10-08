@@ -123,6 +123,16 @@
                             </td>
                             <td class="py-3 px-4 border-b text-red-600 font-semibold">
                                 Rp {{ number_format($pengembalian->denda, 0, ',', '.') }}
+                                @if($pengembalian->denda_telat > 0 || $pengembalian->denda_rusak > 0)
+                                    <div class="mt-1 text-xs font-normal text-gray-500 space-y-0.5">
+                                        @if($pengembalian->denda_telat > 0)
+                                            <div>Telat {{ $pengembalian->hari_telat }} hari: Rp {{ number_format($pengembalian->denda_telat, 0, ',', '.') }}</div>
+                                        @endif
+                                        @if($pengembalian->denda_rusak > 0)
+                                            <div>Rusak: Rp {{ number_format($pengembalian->denda_rusak, 0, ',', '.') }}</div>
+                                        @endif
+                                    </div>
+                                @endif
                             </td>
                             <td class="py-3 px-4 border-b text-center">
                                 <!-- Tombol Hapus Saja -->
