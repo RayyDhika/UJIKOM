@@ -67,7 +67,7 @@ class AdminController extends Controller
                     });
             })
             ->latest()
-            ->paginate(10)
+            ->paginate(25)
             ->withQueryString();
 
         return view('admin.logAktivitas.index', compact('logs', 'search'));
