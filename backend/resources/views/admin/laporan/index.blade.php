@@ -5,6 +5,17 @@
 
 @section('content')
 
+{{-- Pesan error validasi --}}
+@if ($errors->any())
+    <div class="mb-5 bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg text-sm">
+        <ul class="list-disc list-inside space-y-1">
+            @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+@endif
+
 {{-- Filter --}}
 <div class="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200 mb-5">
 
@@ -13,7 +24,7 @@
             <div>
                 <h3 class="text-lg font-bold text-gray-800">Filter Laporan</h3>
                 <p class="text-sm text-gray-500 mt-1">
-                    Pilih estimasi waktu dan kondisi, lalu klik <strong>Tampilkan</strong> untuk melihat datanya.
+                    Pilih <strong>tanggal mulai</strong> dan <strong>tanggal sampai</strong> (wajib), lalu klik <strong>Tampilkan</strong> untuk melihat datanya.
                 </p>
             </div>
 
@@ -39,14 +50,14 @@
 
             {{-- Estimasi Waktu --}}
             <div>
-                <label for="start_date" class="block text-sm font-semibold text-gray-700 mb-1">Estimasi Waktu (Mulai)</label>
-                <input type="date" id="start_date" name="start_date" value="{{ $start_date }}"
+                <label for="start_date" class="block text-sm font-semibold text-gray-700 mb-1">Estimasi Waktu (Mulai) <span class="text-red-500">*</span></label>
+                <input type="date" id="start_date" name="start_date" value="{{ $start_date }}" required
                     class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
             </div>
 
             <div>
-                <label for="end_date" class="block text-sm font-semibold text-gray-700 mb-1">Estimasi Waktu (Sampai)</label>
-                <input type="date" id="end_date" name="end_date" value="{{ $end_date }}"
+                <label for="end_date" class="block text-sm font-semibold text-gray-700 mb-1">Estimasi Waktu (Sampai) <span class="text-red-500">*</span></label>
+                <input type="date" id="end_date" name="end_date" value="{{ $end_date }}" required min="{{ $start_date }}"
                     class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
             </div>
 
@@ -82,7 +93,7 @@
 {{-- Tabel Laporan: hanya tampil setelah klik "Tampilkan" --}}
 @if(!$sudahTampil)
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-10 text-center text-gray-500">
-        Silakan pilih estimasi waktu dan kondisi di atas, lalu klik <strong class="mx-1">Tampilkan</strong> untuk melihat data laporan.
+        Silakan pilih tanggal mulai dan tanggal sampai di atas, lalu klik <strong class="mx-1">Tampilkan</strong> untuk melihat data laporan.
     </div>
 @else
     <div class="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
@@ -113,7 +124,7 @@
                 <tbody class="text-gray-700 text-sm">
                     @forelse($laporan as $index => $item)
                         <tr class="hover:bg-gray-50 transition align-top">
-                            <td class="py-3 px-4 border-b text-center text-gray-500">{{ $index + 1 }}</td>
+                            <td class="py-3 px-4 border-b text-center text-gray-500">{{ method_exists($laporan, 'firstItem') ? $laporan->firstItem() + $index : $index + 1 }}</td>
                             <td class="py-3 px-4 border-b font-medium text-gray-900">{{ $item->user->name ?? 'User Dihapus' }}</td>
                             <td class="py-3 px-4 border-b whitespace-nowrap">{{ $item->tgl_pinjam }}</td>
                             <td class="py-3 px-4 border-b whitespace-nowrap">{{ $item->tgl_kembali_plan ?? '-' }}</td>
@@ -158,5 +169,17 @@
         @endif
     </div>
 @endif
+
+<script>
+    // Tanggal sampai tidak boleh lebih awal dari tanggal mulai
+    (function () {
+        const mulai = document.getElementById('start_date');
+        const sampai = document.getElementById('end_date');
+        mulai.addEventListener('change', function () {
+            sampai.min = mulai.value;
+            if (sampai.value && sampai.value < mulai.value) sampai.value = '';
+        });
+    })();
+</script>
 
 @endsection

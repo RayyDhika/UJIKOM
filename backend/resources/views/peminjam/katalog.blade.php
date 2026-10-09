@@ -116,7 +116,7 @@
             </div>
             <div class="search-wrap">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/></svg>
-                <input type="text" id="cari" class="form-control" placeholder="Cari nama alat...">
+                <input type="text" id="cari" class="form-control" placeholder="Cari nama alat atau kategori...">
             </div>
         </div>
 
@@ -137,7 +137,9 @@
 
             <div class="row g-4" id="grid-alat">
                 @forelse($alats as $alat)
-                    <div class="col-12 col-sm-6 col-lg-3 item-alat" data-nama="{{ strtolower($alat->nama_alat) }}">
+                    <div class="col-12 col-sm-6 col-lg-3 item-alat"
+                         data-nama="{{ mb_strtolower($alat->nama_alat) }}"
+                         data-kategori="{{ mb_strtolower($alat->kategori->nama_kategori ?? '') }}">
                         <div class="alat-card" data-stok="{{ $alat->stok }}">
                             <input type="checkbox" name="alat_id[]" value="{{ $alat->id }}" class="pilih-input">
                             <span class="pilih-circle">&#10003;</span>
@@ -179,7 +181,7 @@
                 @endforelse
             </div>
 
-            <div id="kosong-cari" class="text-center text-muted py-5 d-none">Alat tidak ditemukan.</div>
+            <div id="kosong-cari" class="text-center text-muted py-5 d-none">Alat atau kategori tidak ditemukan.</div>
         </form>
     </div>
 
@@ -224,7 +226,9 @@
             const q = this.value.trim().toLowerCase();
             let ada = 0;
             document.querySelectorAll('.item-alat').forEach(el => {
-                const cocok = el.dataset.nama.includes(q);
+                // Cocokkan dengan nama alat ATAU kategori (kata kunci gabungan juga bisa, mis. "kamera elektronik")
+                const teks = el.dataset.nama + ' ' + el.dataset.kategori;
+                const cocok = q.split(/\s+/).every(kata => teks.includes(kata));
                 el.classList.toggle('d-none', !cocok);
                 if (cocok) ada++;
             });

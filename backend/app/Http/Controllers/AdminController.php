@@ -635,9 +635,14 @@ public function indexPengembalian(Request $request)
     // Menyetujui pengajuan pengembalian: catat data pengembalian & pulihkan stok alat
     public function setujuiPengembalian(Request $request, $peminjamanId)
     {
+        $kondisiRusak = 'rusak ringan,rusak sedang,rusak berat';
         $request->validate([
             'kondisi_kembali' => 'required|in:baik,rusak ringan,rusak sedang,rusak berat',
-            'denda_rusak' => 'nullable|integer|min:0',
+            'denda_rusak' => 'required_if:kondisi_kembali,' . $kondisiRusak . '|nullable|integer|min:0',
+        ], [
+            'denda_rusak.required_if' => 'Denda kerusakan wajib diisi jika kondisi alat rusak.',
+            'denda_rusak.integer' => 'Denda kerusakan harus berupa angka.',
+            'denda_rusak.min' => 'Denda kerusakan tidak boleh negatif.',
         ]);
 
         DB::beginTransaction();
@@ -647,7 +652,7 @@ public function indexPengembalian(Request $request)
             // Denda telat dihitung otomatis di server (tidak bisa dimanipulasi dari form)
             $hariTelat = $peminjaman->hitungHariTelat();
             $dendaTelat = $peminjaman->hitungDendaTelat();
-            $dendaRusak = (int) ($request->denda_rusak ?? 0);
+            $dendaRusak = $request->kondisi_kembali === 'baik' ? 0 : (int) $request->denda_rusak;
 
             Pengembalian::create([
                 'peminjaman_id' => $peminjaman->id,
@@ -683,8 +688,15 @@ public function indexPengembalian(Request $request)
     // Menolak pengajuan pengembalian dari peminjam
     public function tolakPengembalian(Request $request, $peminjamanId)
     {
+        $kondisiRusak = 'rusak ringan,rusak sedang,rusak berat';
         $request->validate([
             'catatan_pengembalian' => 'nullable|string|max:255',
+            'kondisi_kembali' => 'required|in:baik,rusak ringan,rusak sedang,rusak berat',
+            'denda_rusak' => 'required_if:kondisi_kembali,' . $kondisiRusak . '|nullable|integer|min:0',
+        ], [
+            'denda_rusak.required_if' => 'Denda kerusakan wajib diisi jika kondisi alat rusak.',
+            'denda_rusak.integer' => 'Denda kerusakan harus berupa angka.',
+            'denda_rusak.min' => 'Denda kerusakan tidak boleh negatif.',
         ]);
 
         $peminjaman = Peminjaman::menungguPengembalian()->findOrFail($peminjamanId);
@@ -795,22 +807,22 @@ public function indexPengembalian(Request $request)
     // Halaman cetak laporan: tabel hanya tampil setelah user klik "Tampilkan"
     public function indexLaporan(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'start_date' => ['nullable', 'date', 'date_format:Y-m-d'],
-            'end_date' => [
-                'nullable',
-                'date',
-                'date_format:Y-m-d',
-                'after_or_equal:start_date'
-            ],
-            'status' => [
-                'nullable',
-                'string',
-                'in:diajukan,dipinjam,dikembalikan,telat'
-            ],
-        ]);
+        // Tanggal wajib diisi hanya saat tombol Tampilkan ditekan
+    $wajib = $request->boolean('tampilkan') ? 'required' : 'nullable';
 
-        if ($validator->fails()) {
+    $validator = Validator::make($request->all(), [
+        'start_date' => [$wajib, 'date', 'date_format:Y-m-d'],
+        'end_date' => [$wajib, 'date', 'date_format:Y-m-d', 'after_or_equal:start_date'],
+        'status' => ['nullable', 'string', 'in:diajukan,dipinjam,dikembalikan,telat'],
+    ], [
+        'start_date.required' => 'Tanggal mulai wajib dipilih terlebih dahulu.',
+        'end_date.required' => 'Tanggal sampai wajib dipilih terlebih dahulu.',
+        'start_date.date_format' => 'Format tanggal mulai tidak valid.',
+        'end_date.date_format' => 'Format tanggal sampai tidak valid.',
+        'end_date.after_or_equal' => 'Tanggal sampai tidak boleh lebih awal dari tanggal mulai.',
+    ]);
+
+    if ($validator->fails()) {
             return redirect()->route('admin.laporan.index')->withErrors($validator)->withInput();
         }
 
@@ -847,21 +859,18 @@ public function indexPengembalian(Request $request)
     public function cetakLaporan(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'start_date' => ['nullable', 'date', 'date_format:Y-m-d'],
-            'end_date' => [
-                'nullable',
-                'date',
-                'date_format:Y-m-d',
-                'after_or_equal:start_date'
-            ],
-            'status' => [
-                'nullable',
-                'string',
-                'in:diajukan,dipinjam,dikembalikan,telat'
-            ],
-        ]);
+        'start_date' => ['required', 'date', 'date_format:Y-m-d'],
+        'end_date' => ['required', 'date', 'date_format:Y-m-d', 'after_or_equal:start_date'],
+        'status' => ['nullable', 'string', 'in:diajukan,dipinjam,dikembalikan,telat'],
+    ], [
+        'start_date.required' => 'Tanggal mulai wajib dipilih terlebih dahulu.',
+        'end_date.required' => 'Tanggal sampai wajib dipilih terlebih dahulu.',
+        'start_date.date_format' => 'Format tanggal mulai tidak valid.',
+        'end_date.date_format' => 'Format tanggal sampai tidak valid.',
+        'end_date.after_or_equal' => 'Tanggal sampai tidak boleh lebih awal dari tanggal mulai.',
+    ]);
 
-        if ($validator->fails()) {
+    if ($validator->fails()) {
             return redirect()->route('admin.laporan.index')->withErrors($validator)->withInput();
         }
 

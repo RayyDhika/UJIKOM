@@ -40,7 +40,7 @@
                 <option value="rusak sedang" {{ old('kondisi_kembali') == 'rusak sedang' ? 'selected' : '' }}>Rusak Sedang</option>
                 <option value="rusak berat" {{ old('kondisi_kembali') == 'rusak berat' ? 'selected' : '' }}>Rusak Berat</option>
             </select>
-            <p class="text-xs text-gray-400 mt-1">Hanya diperlukan jika pengajuan disetujui.</p>
+            
         </div>
 
         <!-- Denda Telat (otomatis) -->
@@ -64,10 +64,14 @@
             </p>
         </div>
 
-        <!-- Denda Rusak (manual) -->
+        <!-- Denda Rusak (manual, wajib jika alat rusak) -->
         <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-semibold mb-2">Denda Kerusakan (Rp) <span class="text-xs text-gray-400 font-normal">(Isi manual, 0 jika tidak ada)</span></label>
-            <input type="number" name="denda_rusak" id="denda_rusak" value="{{ old('denda_rusak', 0) }}" min="0"
+            <label class="block text-gray-700 text-sm font-semibold mb-2">
+                Denda Kerusakan (Rp)
+                <span id="denda_rusak_wajib" class="text-red-500 hidden">*</span>
+                <span id="denda_rusak_hint" class="text-xs text-gray-400 font-normal"></span>
+            </label>
+            <input type="number" name="denda_rusak" id="denda_rusak" value="{{ old('denda_rusak') }}" min="0"
                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
 
@@ -90,14 +94,13 @@
             <div class="flex gap-2">
                 <button type="submit"
                         formaction="{{ route('petugas.pengembalian.tolak', $peminjaman->id) }}"
-                        formnovalidate
-                        onclick="return confirm('Yakin ingin menolak pengajuan pengembalian ini?')"
+                        data-confirm="Yakin ingin menolak pengajuan pengembalian ini?"
                         class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
                     Tolak Pengembalian
                 </button>
                 <button type="submit"
                         formaction="{{ route('petugas.pengembalian.setujui', $peminjaman->id) }}"
-                        onclick="return confirm('Setujui pengembalian alat ini? Stok akan otomatis dipulihkan.')"
+                        data-confirm="Setujui pengembalian alat ini? Stok akan otomatis dipulihkan."
                         class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
                     Menyetujui
                 </button>
@@ -109,19 +112,66 @@
 <script>
     // Form dikirim via formaction ke route setujui/tolak yang berbeda,
     // keduanya method POST sehingga cukup satu <form> dengan dua tombol submit.
-    document.getElementById('form-proses-pengembalian').setAttribute('method', 'POST');
+    const form = document.getElementById('form-proses-pengembalian');
+    form.setAttribute('method', 'POST');
 
-    // Total denda = denda telat (otomatis) + denda rusak (manual)
     (function () {
         const dendaTelat = {{ $dendaTelat }};
+        const kondisi = document.querySelector('select[name="kondisi_kembali"]');
         const rusak = document.getElementById('denda_rusak');
+        const wajib = document.getElementById('denda_rusak_wajib');
+        const hint = document.getElementById('denda_rusak_hint');
         const total = document.getElementById('denda_total');
+        let sebelumnya = kondisi.value;
+
         function hitung() {
             const jumlah = dendaTelat + (parseInt(rusak.value, 10) || 0);
             total.textContent = 'Rp ' + jumlah.toLocaleString('id-ID');
         }
-        rusak.addEventListener('input', hitung);
-        hitung();
+
+        // Kondisi baik  -> denda kerusakan otomatis 0 (terkunci)
+        // Kondisi rusak -> denda kerusakan WAJIB diisi (berlaku untuk Setujui maupun Tolak)
+        function aturDendaRusak() {
+            const rusakKondisi = kondisi.value !== 'baik';
+
+            if (rusakKondisi) {
+                if (sebelumnya === 'baik') rusak.value = '';
+                rusak.readOnly = false;
+                rusak.required = true;
+                rusak.placeholder = 'Wajib diisi, contoh: 50000';
+                rusak.classList.remove('bg-gray-100', 'cursor-not-allowed');
+                wajib.classList.remove('hidden');
+                hint.textContent = '(Wajib diisi karena alat rusak)';
+            } else {
+                rusak.value = 0;
+                rusak.readOnly = true;
+                rusak.required = false;
+                rusak.placeholder = '';
+                rusak.classList.add('bg-gray-100', 'cursor-not-allowed');
+                wajib.classList.add('hidden');
+                hint.textContent = '(Otomatis 0 jika kondisi baik)';
+            }
+
+            rusak.setCustomValidity('');
+            sebelumnya = kondisi.value;
+            hitung();
+        }
+
+        kondisi.addEventListener('change', aturDendaRusak);
+        rusak.addEventListener('input', function () { rusak.setCustomValidity(''); hitung(); });
+        rusak.addEventListener('invalid', function () {
+            if (rusak.validity.valueMissing) {
+                rusak.setCustomValidity('Denda kerusakan wajib diisi jika kondisi alat rusak.');
+            }
+        });
+
+        // Konfirmasi dijalankan SETELAH validasi form lolos
+        form.addEventListener('submit', function (e) {
+            const msg = e.submitter && e.submitter.dataset.confirm;
+            if (msg && !confirm(msg)) e.preventDefault();
+        });
+
+        aturDendaRusak();
     })();
 </script>
 @endsection
