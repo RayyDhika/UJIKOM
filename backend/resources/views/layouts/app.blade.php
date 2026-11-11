@@ -19,6 +19,8 @@
                     PANEL ADMIN
                 @elseif(auth()->user()->role == 'petugas')
                     PANEL PETUGAS
+                @elseif(auth()->user()->role == 'peminjam')
+                    PANEL PEMINJAM
                 @endif
             </div>
             <nav class="flex-1 p-4 space-y-2">
@@ -108,8 +110,30 @@
                         request()->routeIs('petugas.laporan*') ? 'bg-gray-800 text-white font-medium shadow' : 'text-gray-400 hover:bg-gray-800 hover:text-white' }}">
                         Cetak Laporan
                     </a>
-                @endif 
+                @endif
+                @if(auth()->user()->role === 'peminjam')
+                    <a href="{{ route('peminjam.katalog') }}" class="block px-4 py-2 rounded-lg transition {{ request()->routeIs('peminjam.katalog') ? 'bg-gray-800 text-white font-medium shadow' : 'text-gray-400 hover:bg-gray-800 hover:text-white' }}">Katalog Alat</a>
+                    <a href="{{ route('peminjam.riwayat') }}" class="block px-4 py-2 rounded-lg transition {{ request()->routeIs('peminjam.riwayat') ? 'bg-gray-800 text-white font-medium shadow' : 'text-gray-400 hover:bg-gray-800 hover:text-white' }}">Riwayat Peminjaman</a>
+                @endif
             </nav>
+
+            <!-- MENU PROFIL DI BAGIAN BAWAH SIDEBAR -->
+            <div class="px-4 pb-3">
+                <a href="{{ route('profile.edit') }}"
+                    class="flex items-center gap-3 rounded-lg px-4 py-3 transition
+                    {{ request()->routeIs('profile.*') ? 'bg-blue-600 text-white font-semibold' : 'text-gray-300 hover:bg-gray-800 hover:text-white' }}">
+                    @if(auth()->user()->foto_profile)
+                        <img src="{{ asset(auth()->user()->foto_profile) }}" alt="Foto profil" class="h-9 w-9 rounded-full border border-gray-600 object-cover">
+                    @else
+                        <span class="flex h-9 w-9 items-center justify-center rounded-full bg-gray-700 font-bold text-white">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span>
+                    @endif
+                    <span class="min-w-0">
+                        <span class="block text-sm">Profil Saya</span>
+                        <span class="block truncate text-xs opacity-75">{{ auth()->user()->name }}</span>
+                    </span>
+                </a>
+            </div>
+
             <div class="p-4 border-t border-gray-800 text-sm text-gray-400">
                 Logged in as: <span class="text-white font-semibold">{{ auth()->user()->name }}</span>
             </div>

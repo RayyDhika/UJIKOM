@@ -14,6 +14,12 @@
         <h3 class="text-2xl font-bold text-center text-gray-800 mb-6">Login Sistem</h3>
 
         <!-- Alert Error Session -->
+        @if(session('success'))
+            <div class="mb-4 bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-lg shadow-sm text-sm">
+                {{ session('success') }}
+            </div>
+        @endif
+
         @if(session('error'))
             <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm">
                 {{ session('error') }}
@@ -54,6 +60,12 @@
                 Masuk
             </button>
         </form>
+
+        <!-- Bagian bawah form login -->
+        <div class="mt-4 text-center text-sm text-gray-600">
+            Belum punya akun? 
+            <a href="{{ route('auth.registrasi') }}" class="text-blue-600 hover:underline">daftar sekarang</a>
+        </div>
     </div>
 
 </body>

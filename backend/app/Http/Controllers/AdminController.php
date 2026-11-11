@@ -164,9 +164,11 @@ class AdminController extends Controller
         'name' => 'required|string|max:255',
         'email' => 'required|string|email|max:255|unique:users,email,' . $id,
         'role' => $isSelf ? 'nullable' : 'required|in:admin,petugas,peminjam',
-        'no_hp' => 'nullable|string|max:20',
+        'no_hp' => 'nullable|regex:/^[0-9]+$/|string|max:20',
         'password' => 'nullable|string|min:6',
         'foto_profile' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+    ], [
+        'no_hp.regex' => 'Nomor HP hanya boleh berisi angka.',
     ]);
 
     $data = [
@@ -570,18 +572,21 @@ class AdminController extends Controller
         }
     }
 
-    //menghapus data peminjam
+    // menghapus data peminjam
     public function destroyPeminjaman($id)
     {
         $peminjaman = Peminjaman::with('detailPinjam')->findOrFail($id);
 
-        // jika statusnya sedang dipinjam kembalikan stok terlebih dahulu sebelum dihapus
+        // Cek jika status peminjaman masih 'dipinjam' atau 'telat'
         if (in_array($peminjaman->status, ['dipinjam', 'telat'])) {
-            foreach ($peminjaman->detailPinjam as $detail) {
-                $detail->alat->increment('stok', $detail->jumlah);
-            }
+            return redirect()->back()->with('error', 'Data peminjaman tidak dapat dihapus karena alat masih dalam status dipinjam.');
+        
+            // Jika Anda menggunakan format JSON/API, gunakan baris ini:
+            // return response()->json(['message' => 'Data peminjaman tidak dapat dihapus karena alat masih dalam status dipinjam.'], 403);
         }
 
+        // Jika status bukan 'dipinjam' atau 'telat' (misal: 'selesai' atau 'dikembalikan'), 
+        // data boleh dihapus.
         $peminjaman->delete();
 
         return redirect()->route('admin.peminjaman.index')->with('success', 'Data peminjaman berhasil dihapus.');

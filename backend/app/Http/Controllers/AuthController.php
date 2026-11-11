@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
@@ -42,6 +44,42 @@ class AuthController extends Controller
         return back()->withErrors([
             'email' => 'Email atau password salah.',
         ])->onlyInput('email');
+    }
+
+    public function showRegistrasi()
+    {
+        return view('auth.registrasi');
+    }
+
+    public function registrasi(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:6|confirmed', // Ditambah aturan 'confirmed'
+            'no_hp' => 'required|nullable|regex:/^[0-9]+$/|max:20', // Memastikan no_hp hanya berisi angka
+        ], [
+            'name.required' => 'Nama lengkap wajib diisi.',
+            'email.required' => 'Email wajib diisi.',
+            'email.email' => 'Format email tidak valid.',
+            'email.unique' => 'Email sudah terdaftar.',
+            'password.required' => 'Password wajib diisi.',
+            'password.min' => 'Password minimal 6 karakter.',
+            'password.confirmed' => 'Konfirmasi password tidak sesuai.',
+            'no_hp.required' => 'Nomor telepon wajib diisi.',
+            'no_hp.regex' => 'Nomor telepon hanya boleh berisi angka.',
+        ]);
+
+        User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'no_hp' => $request->no_hp,
+            'role' => 'peminjam',
+        ]);
+
+        return redirect()->route('login')
+            ->with('success', 'Registrasi berhasil silahkan login.');
     }
 
     // Proses Logout

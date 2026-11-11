@@ -4,6 +4,13 @@
 @section('header-title', 'Edit Data Pengguna')
 
 @section('content')
+
+@if(session('error'))
+        <div class="mb-4 bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg shadow-sm text-sm">
+            {{ session('error') }}
+        </div>
+    @endif
+
 <div class="max-w-xl bg-white rounded-lg shadow-sm border border-gray-200 p-6">
     <form action="{{ route('admin.user.update', $user->id) }}" method="POST" enctype="multipart/form-data">
         @csrf
@@ -49,6 +56,7 @@
             <label class="block text-gray-700 text-sm font-semibold mb-2">No. HP</label>
             <input type="text" name="no_hp" value="{{ old('no_hp', $user->no_hp) }}"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            @error('no_hp') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
         </div>
 
         <div class="mb-4">

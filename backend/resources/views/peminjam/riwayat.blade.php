@@ -12,6 +12,7 @@
         <div class="container">
             <a class="navbar-brand" href="{{ route('peminjam.katalog') }}">Panel Peminjam</a>
             <div class="d-flex">
+                <a href="{{ route('profile.edit') }}" class="btn btn-outline-light btn-sm me-2">Profile Saya</a>
                 <a href="{{ route('peminjam.katalog') }}" class="btn btn-outline-light btn-sm me-2">Katalog Alat</a>
                 <form action="{{ route('logout') }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin logout?')">
                     @csrf

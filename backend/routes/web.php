@@ -5,6 +5,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\PetugasController;
 use App\Http\Controllers\PeminjamController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ProfileController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -111,6 +112,16 @@ Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [AuthController::class, 'login']);
 });
+
+// Profil pribadi: semua role yang sudah login hanya dapat mengubah akunnya sendiri.
+Route::middleware('auth')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+});
+
+// Route Registrasi
+Route::get('/registrasi', [AuthController::class, 'showRegistrasi'])->name('auth.registrasi');
+    Route::post('/registrasi', [AuthController::class, 'registrasi'])->name('auth.registrasi.store');
 
 // Route Logout (Harus sudah login)
 Route::post('/logout', [AuthController::class, 'logout'])
