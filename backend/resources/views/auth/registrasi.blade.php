@@ -9,77 +9,85 @@
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen py-6">
 
-    <!-- Card Container (Lebar diubah menjadi w-96 agar sama persis dan ramping seperti form login) -->
-    <div class="bg-white p-6 rounded-lg shadow-md w-96 mx-4">
-        <h3 class="text-2xl font-bold text-center text-gray-800 mb-4">Registrasi Sistem</h3>
+    <!-- Container Utama (Card Dua Kolom) -->
+    <div class="bg-white rounded-3xl shadow-xl overflow-hidden flex flex-col md:flex-row w-full max-w-4xl mx-4">
+        
+        <!-- Sisi Kiri (Panel Merah) -->
+        <div class="bg-red-600 text-white p-10 md:w-1/2 flex flex-col justify-center rounded-r-[80px] md:rounded-r-[120px] relative">
+            <h2 class="text-3xl md:text-4xl font-bold mb-4">Bergabung Bersama Kami!</h2>
+            <p class="text-red-100 text-sm md:text-base leading-relaxed">
+                Buat akun baru untuk mulai melakukan peminjaman alat secara online dengan mudah.
+            </p>
+        </div>
 
-        <!-- Alert Error Session -->
-        @if(session('success'))
-            <div class="mb-3 bg-emerald-50 border border-emerald-200 text-emerald-800 p-3 rounded-lg shadow-sm text-sm">
-                {{ session('success') }}
-            </div>
-        @endif
+        <!-- Sisi Kanan (Form Register) -->
+        <div class="p-8 md:p-10 md:w-1/2 flex flex-col justify-center">
+            <h3 class="text-2xl font-bold text-center text-gray-800 mb-4">Registrasi Sistem</h3>
 
-        @if(session('error'))
-            <div class="mb-3 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm">
-                {{ session('error') }}
-            </div>
-        @endif
+            <!-- Alert Session -->
+            @if(session('success'))
+                <div class="mb-3 bg-emerald-50 border border-emerald-200 text-emerald-800 p-3 rounded-lg text-sm">
+                    {{ session('success') }}
+                </div>
+            @endif
 
-        <form action="{{ route('auth.registrasi.store') }}" method="POST">
-            @csrf
+            @if(session('error'))
+                <div class="mb-3 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm">
+                    {{ session('error') }}
+                </div>
+            @endif
 
-            <!-- Nama Lengkap -->
-            <div class="mb-3">
-                <label class="block text-gray-700 text-sm font-semibold mb-1">Nama Lengkap</label>
-                <input type="text" name="name" value="{{ old('name') }}" required
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-                @error('name') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-            </div>
+            <form action="{{ route('auth.registrasi.store') }}" method="POST">
+                @csrf
 
-            <!-- Email -->
-            <div class="mb-3">
-                <label class="block text-gray-700 text-sm font-semibold mb-1">Email</label>
-                <input type="email" name="email" value="{{ old('email') }}" required
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-                @error('email') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-            </div>
+                <!-- Nama Lengkap -->
+                <div class="mb-3">
+                    <input type="text" name="name" value="{{ old('name') }}" placeholder="Nama Lengkap" required
+                        class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 text-sm">
+                    @error('name') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                </div>
 
-            <!-- Password -->
-            <div class="mb-3">
-                <label class="block text-gray-700 text-sm font-semibold mb-1">Password</label>
-                <input type="password" name="password" required
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-                @error('password') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-            </div>
+                <!-- Email -->
+                <div class="mb-3">
+                    <input type="email" name="email" value="{{ old('email') }}" placeholder="Email" required
+                        class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 text-sm">
+                    @error('email') <span class="text-red-500 text-xs mt-1 block">{{ $message}}</span>@enderror
+                </div>
 
-            <!-- Konfirmasi Password -->
-            <div class="mb-3">
-                <label class="block text-gray-700 text-sm font-semibold mb-1">Konfirmasi Password</label>
-                <input type="password" name="password_confirmation" required
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-            </div>
+                <!-- No Telepon -->
+                <div class="mb-5">
+                    <input type="text" name="no_hp" value="{{ old('no_hp') }}" placeholder="No Telepon" inputmode="numeric"
+                        class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 text-sm">
+                    @error('no_hp') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                </div>
 
-            <!-- No Telepon -->
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-semibold mb-1">No Telepon</label>
-                <input type="text" name="no_hp" value="{{ old('no_hp') }}" inputmode="numeric"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-                @error('no_hp') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-            </div>
+                <!-- Password -->
+                <div class="mb-3">
+                    <input type="password" name="password" placeholder="Password" required
+                        class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 text-sm">
+                    @error('password') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                </div>
 
-            <!-- Tombol Submit -->
-            <button type="submit"
-                class="w-full bg-blue-600 text-white font-semibold py-2 rounded-lg hover:bg-blue-700 transition duration-200 text-sm">
-                Register
-            </button>
-            
-            <!-- Tautan Kembali ke Login -->
-            <div class="mt-4 text-center text-sm text-gray-600">
-                Sudah punya akun? 
-                <a href="{{ route('login') }}" class="text-blue-600 hover:underline">Login sekarang</a>
-            </div>
-        </form>
+                <!-- Konfirmasi Password -->
+                <div class="mb-3">
+                    <input type="password" name="password_confirmation" placeholder="Konfirmasi Password" required
+                        class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 text-sm">
+                </div>
+
+                <!-- Tombol Submit -->
+                <button type="submit"
+                    class="w-full bg-red-600 text-white font-semibold py-3 rounded-xl hover:bg-red-700 transition duration-200 text-sm shadow-md">
+                    Register
+                </button>
+                
+                <!-- Tautan Kembali ke Login -->
+                <div class="mt-4 text-center text-sm text-gray-600">
+                    Sudah punya akun? 
+                    <a href="{{ route('login') }}" class="text-red-600 font-medium hover:underline">Login sekarang</a>
+                </div>
+            </form>
+        </div>
+
     </div>
 
 </body>
